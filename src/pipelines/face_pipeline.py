@@ -41,7 +41,6 @@ def get_trained_model():
     X = []
     y = []
 
-
     student_db = get_all_students()
 
     if not student_db:
@@ -49,21 +48,23 @@ def get_trained_model():
     
     for student in student_db:
         embedding = student.get('face_embedding')
-        if embedding:
+        sid = student.get('student_id') or student.get('id')
+        if embedding and sid is not None:
             X.append(np.array(embedding))
-            y.append(student.get('student_id'))
+            y.append(sid)
 
-    if len(X) ==0:
-        return 0
+    if len(X) == 0:
+        return None
     
     clf = SVC(kernel='linear', probability=True, class_weight='balanced')
 
     try:
         clf.fit(X, y)
-    except ValueError:
+    except Exception as e:
+        print(f"Error training face classifier: {e}")
         pass
 
-    return {'clf': clf, 'X':X, "y":y}
+    return {'clf': clf, 'X': X, "y": y}
 
 
 def train_classifier():
@@ -76,30 +77,36 @@ def predict_attendance(class_image_np):
 
     detected_student = {}
 
-
     model_data = get_trained_model()
 
-    if not model_data:
+    if not model_data or not model_data.get('X') or not model_data.get('y'):
         return detected_student, [], len(encodings)
     
     clf = model_data['clf']
     X_train = model_data['X']
     y_train = model_data['y']
 
-    all_students = sorted(list(set(y_train)))
+    all_students = sorted(list(set(y_train)), key=lambda x: str(x))
 
     for encoding in encodings:
-        if len(all_students)>= 2:
-            predicted_id= int(clf.predict([encoding])[0])
+        if len(set(y_train)) >= 2:
+            try:
+                predicted_id = clf.predict([encoding])[0]
+            except Exception:
+                predicted_id = all_students[0]
         else:
-            predicted_id = int(all_students[0])
+            predicted_id = all_students[0]
 
-        student_embedding = X_train[y_train.index(predicted_id)]
+        try:
+            student_embedding = X_train[y_train.index(predicted_id)]
+            best_match_score = np.linalg.norm(student_embedding - encoding)
 
-        best_match_score = np.linalg.norm(student_embedding - encoding)
+            resemblance_threshold = 0.6
 
-        resemblance_threshold = 0.6
+            if best_match_score <= resemblance_threshold:
+                detected_student[predicted_id] = True
+        except Exception as e:
+            print(f"Error predicting face resemblance: {e}")
 
-        if best_match_score <= resemblance_threshold:
-            detected_student[predicted_id] = True
     return detected_student, all_students, len(encodings)
+
