@@ -50,3 +50,10 @@ def dialog_auto_enroll(subject_code):
             time.sleep(0.5)
             st.rerun()
 
+    st.divider()
+
+
+                        
+                        
+                
+                

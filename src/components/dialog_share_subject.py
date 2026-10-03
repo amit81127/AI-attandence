@@ -2,34 +2,29 @@ import streamlit as st
 import segno
 import io
 
+
 @st.dialog("Share Class Link")
 def share_subject_dialog(subject_name, subject_code):
-    app_domain = "http://localhost:8501"
+    app_domain = "axis-attendance.streamlit.app"
     join_url = f"{app_domain}/?join_code={subject_code}"
 
-    st.header("Scan to join")
+    st.header(f"Scan to join: {subject_name}")
 
-    qr=segno.make(join_url)
-
-    out=io.BytesIO()
+    qr = segno.make(join_url)
+    out = io.BytesIO()
     qr.save(out, kind="png", scale=10, border=1)
-    
-    col1,col2=st.columns(2)
+
+    col1, col2 = st.columns(2)
     with col1:
         st.markdown('### Copy Link')
-        st.code(join_url,language="text")
-        st.code(subject_code,language="text")
+        st.code(join_url, language="text")
+        st.code(subject_code, language="text")
         st.info('Copy this link to share on WhatsApp/Email')
 
     with col2:
         st.markdown('### Scan to Join')
         st.image(
             out.getvalue(),
-            width="stretch",
+            use_container_width=True,
             caption="Scan QR Code to Join"
         )
-        
-
-         
-
-    

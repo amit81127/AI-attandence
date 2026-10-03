@@ -4,7 +4,9 @@ from src.screens.teacher_screen import teacher_screen
 from src.screens.student_screen import student_screen
 from src.components.dialog_auto_enroll import dialog_auto_enroll
 def main():
-     
+     st.set_page_config(
+          page_title='SnapClass-Making Attendance faster using Ai'
+     )
      if 'login_type' not in st.session_state:
         st.session_state['login_type']=None
 

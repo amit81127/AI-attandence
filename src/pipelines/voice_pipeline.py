@@ -4,15 +4,19 @@ import io
 import librosa
 import streamlit as st
 
+
 @st.cache_resource
 def load_voice_encoder():
     return VoiceEncoder()
+
 
 def get_voice_embedding(audio_input):
     try:
         encoder = load_voice_encoder()
 
-        if hasattr(audio_input, "read"):
+        if hasattr(audio_input, "getvalue"):
+            audio_bytes = audio_input.getvalue()
+        elif hasattr(audio_input, "read"):
             audio_bytes = audio_input.read()
         elif isinstance(audio_input, bytes):
             audio_bytes = audio_input
@@ -29,26 +33,34 @@ def get_voice_embedding(audio_input):
         st.error(f"Error processing audio: {e}")
         return None
 
+
 # Alias for backwards compatibility
 get_voice_enbedding = get_voice_embedding
-        
+
+
 def identify_speaker(new_embedding, candidates_dict, threshold=0.65):
     if new_embedding is None or not candidates_dict:
         return None, 0.0
-    
+
     best_sid = None
     best_score = -1.0
 
     for sid, stored_embedding in candidates_dict.items():
-        if stored_embedding:
-            similarity = np.dot(new_embedding, stored_embedding)
-            if similarity > best_score:
-                best_score = similarity
-                best_sid = sid
+        if stored_embedding is not None:
+            try:
+                stored_np = np.array(stored_embedding, dtype=np.float32)
+                similarity = float(np.dot(new_embedding, stored_np))
+                if similarity > best_score:
+                    best_score = similarity
+                    best_sid = sid
+            except Exception as e:
+                print(f"Error calculating similarity for {sid}: {e}")
+
     if best_score >= threshold:
         return best_sid, best_score
 
     return None, best_score
+
 
 def process_bulk_audio(audio_bytes, candidates_dict, threshold=0.65):
     try:
@@ -74,7 +86,5 @@ def process_bulk_audio(audio_bytes, candidates_dict, threshold=0.65):
 
         return identified_results
     except Exception as e:
-        return None
-
-    
-    
+        print(f"Error in process_bulk_audio: {e}")
+        return {}

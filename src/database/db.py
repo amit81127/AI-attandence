@@ -181,7 +181,25 @@ def get_student_attendance(student_id):
             print(f"Error in get_student_attendance: {e}")
             return []
 
+def create_attendance(logs):
+    if not logs:
+        return []
+    cleaned_logs = []
+    log_list = logs if isinstance(logs, list) else [logs]
+    for log in log_list:
+        is_pres = log.get('is_present')
+        if is_pres is None:
+            is_pres = log.get('status', True)
+        cleaned_logs.append({
+            'student_id': log.get('student_id'),
+            'subject_id': log.get('subject_id'),
+            'timestamp': log.get('timestamp'),
+            'is_present': bool(is_pres)
+        })
+    response = supabase.table('attendance_logs').insert(cleaned_logs).execute()
+    return response.data
+
 # Backwards compatibility aliases
 get_students_attandence = get_student_attendance
 get_student_attandence = get_student_attendance
-get_students_attendance = get_student_attendance
+get_students_attendance = get_student_attendance
